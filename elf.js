@@ -39,27 +39,6 @@ const ELFOSABI_LABELS = {
 
 const EI_ABIVERSION = 8;
 
-// TODO: use Buffer methods for parsing
-function parseUnsignedInt(bytes, endian) {
-    switch (endian) {
-    case 'LSB': {
-        let value = 0;
-        for (let i = bytes.length - 1; i >= 0; --i) {
-            value = value*0x100 + bytes[i];
-        }
-        return value;
-    } break;
-
-    case 'MSB': {
-        console.error('MSB is not implemented yet');
-    } break;
-
-    default: {
-        console.error("Unsuported endianess");
-    }
-    }
-}
-
 const sizeOfType = {
     'u8': 1,
     'u16': 2,
@@ -100,16 +79,45 @@ const Elf64_Phdr = [
     ['xword', 'p_align'],
 ];
 
+function serializeStruct(scheme, struct, endian) {
+    console.assert(endian === 'LSB');
+    const result = Buffer.alloc(sizeOfStruct(scheme));
+
+    let bytesIndex = 0;
+    for (let i = 0; i < scheme.length; ++i) {
+        const [type, field] = scheme[i];
+        const size = sizeOfType[type];
+        const value = struct[field];
+        switch (size) {
+        case 1: result.writeUInt8LE(value, bytesIndex); break;
+        case 2: result.writeUInt16LE(value, bytesIndex); break;
+        case 4: result.writeUInt32LE(value, bytesIndex); break;
+        case 8: result.writeBigUInt64LE(BigInt(value), bytesIndex); break;
+        default: throw 'unreachable';
+        }
+        bytesIndex += size;
+    }
+
+    return result;
+}
+
 function parseStruct(scheme, bytes, endian) {
+    console.assert(endian === 'LSB');
+    console.assert(sizeOfStruct(scheme) === bytes.length);
+
     const result = {};
     let bytesIndex = 0;
     for (let i = 0; i < scheme.length; ++i) {
         const [type, field] = scheme[i];
-        if (bytesIndex + sizeOfType[type] > bytes.length) {
-            return null;
+        const size = sizeOfType[type];
+        switch (size) {
+        case 1: result[field] = bytes.readUInt8LE(bytesIndex); break;
+        case 2: result[field] = bytes.readUInt16LE(bytesIndex); break;
+        case 4: result[field] = bytes.readUInt32LE(bytesIndex); break;
+        case 8: result[field] = Number(bytes.readBigUInt64LE(bytesIndex)); break;
+        default: throw 'unreachable';
         }
-        result[field] = parseUnsignedInt(bytes.slice(bytesIndex, bytesIndex + sizeOfType[type]), endian);
-        bytesIndex += sizeOfType[type];
+        bytesIndex += size;
     }
     return result;
 }
@@ -139,7 +147,53 @@ function getPhdrByIndex(fd, ehdr, index) {
     return phdr;
 }
 
-function main () {
+const RAX = 0xC0;
+const RDI = 0xC7;
+const RSI = 0xC6;
+const RDX = 0xC2;
+
+function syscall() {
+    return Buffer.from([0x0f, 0x05]);
+}
+
+function mov(reg, value) {
+    const inst = Buffer.from([0x48, 0xc7, 0, 0, 0, 0, 0]);
+    inst.writeUInt8(reg, 2);
+    inst.writeUInt32LE(value, 3);
+    return inst;
+}
+
+const SYS_write = 1;
+const SYS_exit = 60;
+const STDOUT = 1;
+
+function write(hello, hello_sz) {
+    return Buffer.concat([
+        mov(RAX, SYS_write),
+        mov(RDI, STDOUT),
+        mov(RSI, hello),
+        mov(RDX, hello_sz),
+        syscall()
+    ]);
+}
+
+function exit(code) {
+    return Buffer.concat([
+        mov(RAX, SYS_exit),
+        mov(RDI, code),
+        syscall()
+    ]);
+}
+
+function helloWorldProgram(hello, hello_sz) {
+    return Buffer.concat([
+        // write(hello, hello_sz),
+        write(hello, hello_sz),
+        exit(0),
+    ]);
+}
+
+function parseExecutable() {
     const FILE_PATH = process.argv[2];
 
     if (!FILE_PATH) {
@@ -159,6 +213,8 @@ function main () {
         console.error("ERROR: Invalid ELF magic");
         return;
     }
+
+    console.log(e_ident);
 
     if (e_ident[EI_CLASS] == ELFCLASS32) {
         console.log("Class: ELF32");
@@ -189,11 +245,95 @@ function main () {
     // TODO: unhardcode endianess parsing
     const ehdr = parseStruct(Elf64_Ehdr, ehdrBuffer, 'LSB');
     console.log(ehdr);
-
+    
     console.log();
     console.log("Phdrs:");
     for (let i = 0; i < ehdr.e_phnum; ++i) {
         console.log(getPhdrByIndex(fd, ehdr, i));
+    }
+
+    // * * * * * *
+    // 5 6 7 8 9 10
+    // ^     ^
+    //
+    // 6 - 3
+
+    console.log();
+    console.log("Machine Code:");
+    const dataPhdr = getPhdrByIndex(fd, ehdr, 0);
+
+    const offset = dataPhdr.p_offset + ehdr.e_entry - dataPhdr.p_vaddr;
+    const filesz = dataPhdr.p_filesz - offset;
+    const dataBuffer = Buffer.alloc(filesz);
+    fs.readSync(fd, dataBuffer, 0, filesz, offset);
+    console.log(dataBuffer);
+}
+
+function generateExecutable() {
+    const e_ident = Buffer.from([0x7F, 0x45, 0x4C, 0x46, 0x02, 0x01, 0x01, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
+
+    const FILE_PATH = "new";
+    const fd = fs.openSync(FILE_PATH, 'w');
+    fs.writeSync(fd, e_ident);
+
+    const ehdr = {
+        e_type: 2,
+        e_machine: 62,
+        e_version: 1,
+        e_entry: 4194480,
+        e_phoff: 64,
+        e_shoff: 0,
+        e_flags: 0,
+        e_ehsize: 64,
+        e_phentsize: 56,
+        e_phnum: 2,
+        e_shentsize: 64,
+        e_shnum: 0,
+        e_shstrndx: 0
+    };
+
+    fs.writeSync(fd, serializeStruct(Elf64_Ehdr, ehdr, 'LSB'));
+
+    const data = "Ur Mom!\n";
+    const dataStartAddr = 4198622;
+    const eIdentSize = 16;
+    const elfGarbageSize = eIdentSize + sizeOfStruct(Elf64_Ehdr) + sizeOfStruct(Elf64_Phdr)*2;
+    const machineCode = helloWorldProgram(dataStartAddr, data.length);
+
+    const codePhdr = {
+        p_type: 1,
+        p_flags: 5,
+        p_offset: 0,
+        p_vaddr: 4194304,
+        p_paddr: 4194304,
+        p_filesz: elfGarbageSize + machineCode.length,
+        p_memsz: elfGarbageSize + machineCode.length,
+        p_align: 4096
+    };
+    // console.log(codePhdr);
+    fs.writeSync(fd, serializeStruct(Elf64_Phdr, codePhdr, 'LSB'));
+
+    const dataPhdr = {
+        p_type: 1,
+        p_flags: 6,
+        p_offset: elfGarbageSize + machineCode.length,
+        p_vaddr: dataStartAddr,
+        p_paddr: dataStartAddr,
+        p_filesz: data.length,
+        p_memsz: data.length,
+        p_align: 4096
+    };
+    // console.log(dataPhdr);
+    fs.writeSync(fd, serializeStruct(Elf64_Phdr, dataPhdr, 'LSB'));
+    fs.writeSync(fd, machineCode);
+    fs.writeSync(fd, data);
+}
+
+function main() {
+    if (0) {
+        parseExecutable();
+    } else {
+        generateExecutable();
     }
 }
 
