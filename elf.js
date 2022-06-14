@@ -139,19 +139,18 @@ function getPhdrByIndex(fd, ehdr, index) {
     return phdr;
 }
 
-const FILE_PATH = process.argv[2];
+function main () {
+    const FILE_PATH = process.argv[2];
 
-if (!FILE_PATH) {
-    console.error("Usage: node elf.js <file>");
-    console.error("ERROR: no file is provided");
-    process.exit(1);
-}
-
-fs.open(FILE_PATH, 'r', (status, fd) => {
-    if (status) {
-        console.error(status);
-        return;
+    if (!FILE_PATH) {
+        console.error("Usage: node elf.js <file>");
+        console.error("ERROR: no file is provided");
+        process.exit(1);
     }
+
+    const fd = fs.openSync(FILE_PATH, 'r')
+
+    // TODO: use serialization "framework" for parsing e_ident
 
     const n = 16;
     const e_ident = Buffer.alloc(n);
@@ -161,39 +160,41 @@ fs.open(FILE_PATH, 'r', (status, fd) => {
         return;
     }
 
-    console.log("YEP! This is an ELF file");
-
     if (e_ident[EI_CLASS] == ELFCLASS32) {
-        console.log("32 bit");
+        console.log("Class: ELF32");
     } else if (e_ident[EI_CLASS] == ELFCLASS64) {
-        console.log("64 bit");
+        console.log("Class: ELF64");
     } else {
         console.error("ERROR: invalid EI_CLASS ${e_ident[EI_CLASS]}");
         return;
     }
 
     if (e_ident[EI_DATA] == ELFDATA2LSB) {
-        console.log("Little endian");
+        console.log("Data: 2's complement, little endian");
     } else if (e_ident[EI_DATA] == ELFDATA2MSB) {
-        console.log("Big endian");
+        console.log("Data: 2's complement, big endian");
     } else {
         console.error("ERROR: invalid EI_DATA ${e_ident[EI_DATA]}");
         return;
     }
 
-    console.log(`Version ${e_ident[EI_VERSION]}`);
-    console.log(`ABI: ${ELFOSABI_LABELS[e_ident[EI_OSABI]]}`);
-    console.log(`ABI version: ${e_ident[EI_ABIVERSION]}`)
+    console.log(`Version: ${e_ident[EI_VERSION]}`);
+    console.log(`OS/ABI: ${ELFOSABI_LABELS[e_ident[EI_OSABI]]}`);
+    console.log(`ABI Version: ${e_ident[EI_ABIVERSION]}`)
 
+    console.log();
+    console.log("Ehdr:");
     const ehdrBuffer = Buffer.alloc(sizeOfStruct(Elf64_Ehdr));
     fs.readSync(fd, ehdrBuffer, 0, sizeOfStruct(Elf64_Ehdr), null);
     // TODO: unhardcode endianess parsing
     const ehdr = parseStruct(Elf64_Ehdr, ehdrBuffer, 'LSB');
     console.log(ehdr);
 
+    console.log();
+    console.log("Phdrs:");
     for (let i = 0; i < ehdr.e_phnum; ++i) {
         console.log(getPhdrByIndex(fd, ehdr, i));
     }
+}
 
-    console.log("OK");
-});
+main();
