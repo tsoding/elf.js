@@ -1,3 +1,4 @@
+// TODO: migrate to TypeScript
 const fs = require('fs');
 
 const EI_NIDENT = 16;
@@ -17,7 +18,7 @@ const ELFDATANUM = 3;
 
 const EI_VERSION = 6;  /* File version byte index */
 
-const EI_OSABI            = 7;  /* OS ABI identification */
+const EI_OSABI = 7;  /* OS ABI identification */
 
 const ELFOSABI_LABELS = {
     '0': 'SYSV',
@@ -38,8 +39,7 @@ const ELFOSABI_LABELS = {
 
 const EI_ABIVERSION = 8;
 
-const FILE_PATH = './hello';
-
+// TODO: use Buffer methods for parsing
 function parseUnsignedInt(bytes, endian) {
     switch (endian) {
     case 'LSB': {
@@ -139,6 +139,14 @@ function getPhdrByIndex(fd, ehdr, index) {
     return phdr;
 }
 
+const FILE_PATH = process.argv[2];
+
+if (!FILE_PATH) {
+    console.error("Usage: node elf.js <file>");
+    console.error("ERROR: no file is provided");
+    process.exit(1);
+}
+
 fs.open(FILE_PATH, 'r', (status, fd) => {
     if (status) {
         console.error(status);
@@ -179,6 +187,7 @@ fs.open(FILE_PATH, 'r', (status, fd) => {
 
     const ehdrBuffer = Buffer.alloc(sizeOfStruct(Elf64_Ehdr));
     fs.readSync(fd, ehdrBuffer, 0, sizeOfStruct(Elf64_Ehdr), null);
+    // TODO: unhardcode endianess parsing
     const ehdr = parseStruct(Elf64_Ehdr, ehdrBuffer, 'LSB');
     console.log(ehdr);
 
