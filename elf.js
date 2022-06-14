@@ -4,36 +4,36 @@ const EI_NIDENT = 16;
 const ELFMAG = [127, 69, 76, 70];
 
 const EI_CLASS = 4;
-const ELFCLASSNONE = 0		/* Invalid class */
-const ELFCLASS32 = 1;		/* 32-bit objects */
-const ELFCLASS64 = 2;		/* 64-bit objects */
+const ELFCLASSNONE = 0  /* Invalid class */
+const ELFCLASS32 = 1;  /* 32-bit objects */
+const ELFCLASS64 = 2;  /* 64-bit objects */
 const ELFCLASSNUM = 3;
 
-const EI_DATA		= 5;		/* Data encoding byte index */
-const ELFDATANONE	= 0;		/* Invalid data encoding */
-const ELFDATA2LSB	= 1;		/* 2's complement, little endian */
-const ELFDATA2MSB	= 2;		/* 2's complement, big endian */
-const ELFDATANUM	= 3;
+const EI_DATA  = 5;  /* Data encoding byte index */
+const ELFDATANONE = 0;  /* Invalid data encoding */
+const ELFDATA2LSB = 1;  /* 2's complement, little endian */
+const ELFDATA2MSB = 2;  /* 2's complement, big endian */
+const ELFDATANUM = 3;
 
-const EI_VERSION	= 6;		/* File version byte index */
+const EI_VERSION = 6;  /* File version byte index */
 
 const EI_OSABI            = 7;  /* OS ABI identification */
 
 const ELFOSABI_LABELS = {
-	'0': 'SYSV',
-	'1': 'HPUX',
-	'2': 'NETBSD',
-	'3': 'LINUX',
-	'6': 'SOLARIS',
-	'7': 'AIX',
-	'8': 'IRIX',
-	'9': 'FREEBSD',
-	'10': 'TRU64',
-	'11': 'MODESTO',
-	'12': 'OPENBSD',
-	'64': 'ARM_AEABI',
-	'97': 'ARM',
-	'255': 'STANDALONE',
+    '0': 'SYSV',
+    '1': 'HPUX',
+    '2': 'NETBSD',
+    '3': 'LINUX',
+    '6': 'SOLARIS',
+    '7': 'AIX',
+    '8': 'IRIX',
+    '9': 'FREEBSD',
+    '10': 'TRU64',
+    '11': 'MODESTO',
+    '12': 'OPENBSD',
+    '64': 'ARM_AEABI',
+    '97': 'ARM',
+    '255': 'STANDALONE',
 }
 
 const EI_ABIVERSION = 8;
@@ -78,8 +78,8 @@ const Elf64_Ehdr = [
     ['half', 'e_machine'],
     ['word', 'e_version'],
     ['addr', 'e_entry'],
-    ['off',	'e_phoff'],
-    ['off',	'e_shoff'],
+    ['off', 'e_phoff'],
+    ['off', 'e_shoff'],
     ['word', 'e_flags'],
     ['half', 'e_ehsize'],
     ['half', 'e_phentsize'],
@@ -90,14 +90,14 @@ const Elf64_Ehdr = [
 ];
 
 const Elf64_Phdr = [
-    ['word',	'p_type'],
-    ['word',	'p_flags'],
-    ['off',	'p_offset'],
-    ['addr',	'p_vaddr'],
-    ['addr',	'p_paddr'],
-    ['xword',	'p_filesz'],
-    ['xword',	'p_memsz'],
-    ['xword',	'p_align'],
+    ['word', 'p_type'],
+    ['word', 'p_flags'],
+    ['off', 'p_offset'],
+    ['addr', 'p_vaddr'],
+    ['addr', 'p_paddr'],
+    ['xword', 'p_filesz'],
+    ['xword', 'p_memsz'],
+    ['xword', 'p_align'],
 ];
 
 function parseStruct(scheme, bytes, endian) {
