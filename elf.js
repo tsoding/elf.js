@@ -210,7 +210,8 @@ const subcmds = {
     'help': {
         'description': 'Print this help message',
         'args': '[SUBCOMMAND]',
-        'run': (name) => {
+        'run': (args) => {
+            const name = args[0];
             if (name) {
                 const subcmd = subcmds[name];
                 console.error(`Usage: node elf.js ${name} ${subcmd.args}`);
