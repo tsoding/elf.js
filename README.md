@@ -10,3 +10,5 @@ Supports only x86_64 Linux. You need only [node.js](https://nodejs.org/en/):
 $ node elf.js gen hello 'Hello, World'
 $ ./hello
 ```
+
+It literally generates a working ELF64 executable file byte by byte that prints `Hello, World` when run on Linux x86_64.
