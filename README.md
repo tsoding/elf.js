@@ -12,3 +12,12 @@ $ ./hello
 ```
 
 It literally generates a working ELF64 executable file byte by byte that prints `Hello, World` when run on Linux x86_64.
+
+## Development
+
+### Recompile [elf.js](./elf.js) from [elf.ts](./elf.ts)
+
+```console
+$ npm install
+$ ./node_modules/.bin/tsc
+```

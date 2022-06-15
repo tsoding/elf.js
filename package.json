@@ -1,0 +1,23 @@
+{
+  "name": "elf",
+  "version": "1.0.0",
+  "description": "ELF parser and generator",
+  "main": "elf.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tsoding/elf.js.git"
+  },
+  "author": "Alexey Kutepov <reximkut@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/tsoding/elf.js/issues"
+  },
+  "homepage": "https://github.com/tsoding/elf.js#readme",
+  "devDependencies": {
+    "@types/node": "^17.0.43",
+    "typescript": "^4.7.3"
+  }
+}
