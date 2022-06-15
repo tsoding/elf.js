@@ -193,12 +193,45 @@ function helloWorldProgram(hello, hello_sz) {
     ]);
 }
 
-function parseExecutable() {
-    const FILE_PATH = process.argv[2];
+const subcmds = {
+    'parse': {
+        'description': 'Parse provided executable',
+        'args': '<FILE>',
+        'run': parseExecutable,
+    },
+
+    'gen': {
+        'description': 'Generate a new test executable',
+        'args': '<FILE>',
+        'run': generateExecutable,
+    },
+
+    'help': {
+        'description': 'Print this help message',
+        'args': '[SUBCOMMAND]',
+        'run': (name) => {
+            if (name) {
+                const subcmd = subcmds[name];
+                console.error(`Usage: node elf.js ${name} ${subcmd.args}`);
+                console.error(`Description:`);
+                console.error(`    ${subcmd.description}`);
+            } else {
+                console.error('Usage: node elf.js [SUBCOMMAND] [ARGUMENTS]');
+                console.error('SUBCOMMANDS:');
+                for (let name in subcmds) {
+                    console.log(`    ${name} ${subcmds[name].args} - ${subcmds[name].description}`);
+                }
+            }
+        }
+    },
+};
+
+function parseExecutable(argv) {
+    const FILE_PATH = argv[0];
 
     if (!FILE_PATH) {
-        console.error("Usage: node elf.js <file>");
-        console.error("ERROR: no file is provided");
+        subcmds.help.run('parse');
+        console.error('ERROR: No executable file is provided');
         process.exit(1);
     }
 
@@ -329,12 +362,21 @@ function generateExecutable() {
     fs.writeSync(fd, data);
 }
 
+
+function usage() {
+    console.error('Usage: node elf.js [SUBCOMMAND] [ARGUMENTS]');
+    console.error('SUBCOMMANDS:');
+}
+
 function main() {
-    if (0) {
-        parseExecutable();
-    } else {
-        generateExecutable();
+    const subcmd = subcmds[process.argv[2]];
+    if (!subcmd) {
+        subcmds.help.run();
+        console.error('ERROR: no subcommand is provided');
+        process.exit(1);
     }
+
+    subcmd.run(process.argv.slice(3));
 }
 
 main();
