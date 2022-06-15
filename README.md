@@ -4,8 +4,9 @@ An on going project to learn ELF format. The end goal is to be able to generate 
 
 ## Quick Start
 
-You need [fasm](https://flatassembler.net/) and [node.js](https://nodejs.org/en/):
+Supports only x86_64 Linux. You need only [node.js](https://nodejs.org/en/):
 
 ```console
-$ ./build.sh
+$ node elf.js gen hello 'Hello, World'
+$ ./hello
 ```

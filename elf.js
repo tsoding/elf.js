@@ -81,6 +81,7 @@ const Elf64_Phdr = [
 
 function serializeStruct(scheme, struct, endian) {
     console.assert(endian === 'LSB');
+    // TODO: Get rid of Buffer. It is Node.js only. We need more universal code.
     const result = Buffer.alloc(sizeOfStruct(scheme));
 
     let bytesIndex = 0;
@@ -201,8 +202,8 @@ const subcmds = {
     },
 
     'gen': {
-        'description': 'Generate a new test executable',
-        'args': '<FILE>',
+        'description': 'Generate a new test executable that prints specified message',
+        'args': '<FILE> <MESSAGE>',
         'run': generateExecutable,
     },
 
@@ -302,10 +303,23 @@ function parseExecutable(argv) {
     console.log(dataBuffer);
 }
 
-function generateExecutable() {
+function generateExecutable(args) {
     const e_ident = Buffer.from([0x7F, 0x45, 0x4C, 0x46, 0x02, 0x01, 0x01, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
 
-    const FILE_PATH = "new";
+    const FILE_PATH = args[0];
+    if (!FILE_PATH) {
+        subcmds.help.run('gen');
+        console.error('ERROR: no file path is provided');
+        process.exit(1);
+    }
+
+    const data = args[1];
+    if (!data) {
+        subcmds.help.run('gen');
+        console.error('ERROR: no message is provided');
+        process.exit(1);
+    }
+
     const fd = fs.openSync(FILE_PATH, 'w');
     fs.writeSync(fd, e_ident);
 
@@ -327,7 +341,6 @@ function generateExecutable() {
 
     fs.writeSync(fd, serializeStruct(Elf64_Ehdr, ehdr, 'LSB'));
 
-    const data = "Ur Mom!\n";
     const dataStartAddr = 4198622;
     const eIdentSize = 16;
     const elfGarbageSize = eIdentSize + sizeOfStruct(Elf64_Ehdr) + sizeOfStruct(Elf64_Phdr)*2;
@@ -360,6 +373,9 @@ function generateExecutable() {
     fs.writeSync(fd, serializeStruct(Elf64_Phdr, dataPhdr, 'LSB'));
     fs.writeSync(fd, machineCode);
     fs.writeSync(fd, data);
+    fs.closeSync(fd);
+
+    fs.chmodSync(FILE_PATH, 0755);
 }
 
 

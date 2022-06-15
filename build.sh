@@ -4,4 +4,4 @@ set -xe
 
 fasm hello.asm
 chmod +x ./hello
-node elf.js ./hello
+node elf.js parse ./hello
